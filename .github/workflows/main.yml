@@ -34,7 +34,14 @@ jobs:
 
       - name: Fix SDK constraint in pubspec.yaml
         run: |
-          sed -i "s/sdk: '>=3.0.0 <4.0.0'/sdk: '^3.5.0'/" pubspec.yaml
+          python3 - <<'PY'
+          import re
+          with open('pubspec.yaml') as f:
+              text = f.read()
+          text = re.sub(r"(environment:\n)\s*sdk:.*\n", r"\1  sdk: '^3.5.0'\n", text, count=1)
+          with open('pubspec.yaml', 'w') as f:
+              f.write(text)
+          PY
           cat pubspec.yaml
 
       - run: flutter pub get
