@@ -1,24 +1,37 @@
-name: ai_logoped
-description: Професионален AI Логопед за български език
-publish_to: 'none'
-version: 1.0.0+1
+name: Build Android APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Logoped_App_Project
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
 
-environment:
-  sdk: '>=3.0.0 <4.0.0'
+      - name: Regenerate Android platform folder (fixes v1 embedding)
+        run: |
+          rm -rf android
+          flutter create --platforms=android --project-name ai_logoped --org com.ailogoped .
 
-dependencies:
-  flutter:
-    sdk: flutter
-  speech_to_text: ^7.0.0
-  record: ^5.1.2
-  audioplayers: ^6.0.0
-  path_provider: ^2.1.2
-  permission_handler: ^11.3.1
+      - name: Restore required permissions and app label
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          for PERM in RECORD_AUDIO INTERNET MODIFY_AUDIO_SETTINGS WRITE_EXTERNAL_STORAGE READ_EXTERNAL_STORAGE; do
+            grep -q "\"android.permission.$PERM\"" "$MANIFEST" || \
+            sed -i "s#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.$PERM\"/>#" "$MANIFEST"
+          done
+          sed -i 's/android:label="[^"]*"/android:label="AI Логопед"/' "$MANIFEST"
+          cat "$MANIFEST"
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^3.0.0
+      - run: flutter pub get
+      - run: flutter build apk --release
 
-flutter:
-  uses-material-design: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AI-Logoped-APK
+          path: Logoped_App_Project/build/app/outputs/flutter-apk/app-release.apk
