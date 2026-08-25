@@ -35,14 +35,30 @@ jobs:
       - name: Fix SDK constraint in pubspec.yaml
         run: |
           python3 - <<'PY'
-          import re
-          with open('pubspec.yaml') as f:
-              text = f.read()
-          text = re.sub(r"(environment:\n)\s*sdk:.*\n", r"\1  sdk: '^3.5.0'\n", text, count=1)
-          with open('pubspec.yaml', 'w') as f:
-              f.write(text)
+          with open('pubspec.yaml', newline='') as f:
+              lines = f.readlines()
+          out = []
+          in_env = False
+          fixed = False
+          for line in lines:
+              stripped = line.strip()
+              if stripped.startswith('environment:'):
+                  in_env = True
+                  out.append(line)
+                  continue
+              if in_env and not fixed and stripped.startswith('sdk:'):
+                  out.append("  sdk: '^3.5.0'\n")
+                  fixed = True
+                  in_env = False
+                  continue
+              out.append(line)
+          with open('pubspec.yaml', 'w', newline='') as f:
+              f.writelines(out)
+          print('FIXED:', fixed)
           PY
+          echo "---- pubspec.yaml content ----"
           cat pubspec.yaml
+          echo "-------------------------------"
 
       - run: flutter pub get
       - run: flutter build apk --release
