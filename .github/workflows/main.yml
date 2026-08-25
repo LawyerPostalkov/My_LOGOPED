@@ -25,45 +25,16 @@ jobs:
       - name: Restore required permissions and app label
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          
-          # Add required permissions if not present
           for PERM in RECORD_AUDIO INTERNET MODIFY_AUDIO_SETTINGS WRITE_EXTERNAL_STORAGE READ_EXTERNAL_STORAGE; do
-            if ! grep -q "android.permission.$PERM" "$MANIFEST"; then
-              sed -i "/<manifest/a\\    <uses-permission android:name=\"android.permission.$PERM\" />" "$MANIFEST"
-            fi
+            grep -q "\"android.permission.$PERM\"" "$MANIFEST" || \
+            sed -i "s#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.$PERM\"/>#" "$MANIFEST"
           done
-          
-          # Set app label
           sed -i 's/android:label="[^"]*"/android:label="AI Логопед"/' "$MANIFEST"
-          
-          # Display result
-          echo "Android Manifest updated:"
           cat "$MANIFEST"
 
       - name: Fix SDK constraint in pubspec.yaml
         run: |
-          python3 - <<'PY'
-          with open('pubspec.yaml', newline='') as f:
-              lines = f.readlines()
-          out = []
-          in_env = False
-          fixed = False
-          for line in lines:
-              stripped = line.strip()
-              if stripped.startswith('environment:'):
-                  in_env = True
-                  out.append(line)
-                  continue
-              if in_env and not fixed and stripped.startswith('sdk:'):
-                  out.append("  sdk: '^3.5.0'\n")
-                  fixed = True
-                  in_env = False
-                  continue
-              out.append(line)
-          with open('pubspec.yaml', 'w', newline='') as f:
-              f.writelines(out)
-          print('FIXED:', fixed)
-          PY
+          sed -i '0,/sdk:/{s/sdk:.*/sdk: '"'"'^3.5.0'"'"'/}' pubspec.yaml
           echo "---- pubspec.yaml content ----"
           cat pubspec.yaml
           echo "-------------------------------"
