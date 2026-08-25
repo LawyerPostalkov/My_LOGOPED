@@ -25,11 +25,19 @@ jobs:
       - name: Restore required permissions and app label
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
+          
+          # Add required permissions if not present
           for PERM in RECORD_AUDIO INTERNET MODIFY_AUDIO_SETTINGS WRITE_EXTERNAL_STORAGE READ_EXTERNAL_STORAGE; do
-            grep -q "\"android.permission.$PERM\"" "$MANIFEST" || \
-            sed -i "s#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">#<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <uses-permission android:name=\"android.permission.$PERM\"/>#" "$MANIFEST"
+            if ! grep -q "android.permission.$PERM" "$MANIFEST"; then
+              sed -i "/<manifest/a\\    <uses-permission android:name=\"android.permission.$PERM\" />" "$MANIFEST"
+            fi
           done
+          
+          # Set app label
           sed -i 's/android:label="[^"]*"/android:label="AI Логопед"/' "$MANIFEST"
+          
+          # Display result
+          echo "Android Manifest updated:"
           cat "$MANIFEST"
 
       - name: Fix SDK constraint in pubspec.yaml
