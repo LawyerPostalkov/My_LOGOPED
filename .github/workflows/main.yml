@@ -32,6 +32,11 @@ jobs:
           sed -i 's/android:label="[^"]*"/android:label="AI Логопед"/' "$MANIFEST"
           cat "$MANIFEST"
 
+      - name: Fix SDK constraint in pubspec.yaml
+        run: |
+          sed -i "s/sdk: '>=3.0.0 <4.0.0'/sdk: '^3.5.0'/" pubspec.yaml
+          cat pubspec.yaml
+
       - run: flutter pub get
       - run: flutter build apk --release
 
